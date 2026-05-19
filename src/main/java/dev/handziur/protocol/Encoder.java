@@ -2,6 +2,7 @@ package dev.handziur.protocol;
 
 import dev.handziur.crypto.Crypto;
 import dev.handziur.model.Packet;
+import java.security.GeneralSecurityException;
 
 public class Encoder {
 
@@ -13,44 +14,49 @@ public class Encoder {
         this.crypto = crypto;
     }
 
-    public byte[] encode(Packet packet) throws Exception {
-        int offset = 0;
+    public byte[] encode(Packet packet) throws ProtocolException {
+        try {
+            byte[] rawData = packet.message().data();
+            byte[] unencryptedMsg = new byte[4 + 4 + rawData.length];
 
-        byte[] encryptedData = crypto.encrypt(packet.message().data());
-        int dataLen = encryptedData.length;
-        int len = 1 + 1 + 8 + 4 + 2 + (4 + 4 + dataLen) + 2;
+            writeInt(unencryptedMsg, 0, packet.message().type());
+            writeInt(unencryptedMsg, 4, packet.message().userId());
 
-        byte[] bytes = new byte[len];
+            for (int i = 0; i < rawData.length; i++) {
+                unencryptedMsg[8 + i] = rawData[i];
+            }
 
-        bytes[offset++] = MAGIC_NUMBER;
-        bytes[offset++] = packet.source();
+            byte[] encryptedMsg = crypto.encrypt(unencryptedMsg);
+            int wLen = encryptedMsg.length;
+            int totalLen = 16 + wLen + 2;
 
-        writeLong(bytes, offset, packet.packetId());
-        offset += 8;
+            byte[] bytes = new byte[totalLen];
+            int offset = 0;
 
-        writeInt(bytes, offset, 4 + 4 + dataLen);
-        offset += 4;
+            bytes[offset++] = MAGIC_NUMBER;
+            bytes[offset++] = packet.source();
 
-        short headerCrc16 = Crc16.calculateCrc(bytes, 0, offset);
-        writeShort(bytes, offset, headerCrc16);
-        offset += 2;
+            writeLong(bytes, offset, packet.packetId());
+            offset += 8;
 
-        writeInt(bytes, offset, packet.message().type());
-        offset += 4;
+            writeInt(bytes, offset, wLen);
+            offset += 4;
 
-        writeInt(bytes, offset, packet.message().userId());
-        offset += 4;
+            short headerCrc16 = Crc16.calculateCrc(bytes, 0, offset);
+            writeShort(bytes, offset, headerCrc16);
+            offset += 2;
 
+            for (int i = 0; i < wLen; i++) {
+                bytes[offset++] = encryptedMsg[i];
+            }
 
+            short messageCrc16 = Crc16.calculateCrc(bytes, 16, wLen);
+            writeShort(bytes, offset, messageCrc16);
 
-        for (byte b : encryptedData) {
-            bytes[offset++] = b;
+            return bytes;
+        } catch (GeneralSecurityException e) {
+            throw new ProtocolException("packet encoding and encryption failed", e);
         }
-
-        short messageCrc16 = Crc16.calculateCrc(bytes, 16, 4 + 4 + dataLen);
-        writeShort(bytes, offset, messageCrc16);
-
-        return bytes;
     }
 
     private void writeShort(byte[] bytes, int offset, short val) {
