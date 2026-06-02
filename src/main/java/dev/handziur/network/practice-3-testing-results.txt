@@ -1,0 +1,116 @@
+1 step (compiling):
+
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ mvn clean compile
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.common.util.concurrent.AbstractFuture$UnsafeAtomicHelper (file:/usr/share/maven/lib/guava-33.4.8-jre.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.common.util.concurrent.AbstractFuture$UnsafeAtomicHelper
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[INFO] Scanning for projects...
+[INFO]
+[INFO] -------------------< dev.handziur:practice-project >--------------------
+[INFO] Building practice-project 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- clean:3.2.0:clean (default-clean) @ practice-project ---
+[INFO] Deleting /home/handziurdmytro/workspace/ukma/java-client-server/practice-project/target
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ practice-project ---
+[INFO] Copying 0 resource from src/main/resources to target/classes
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ practice-project ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 20 source files with javac [debug target 25] to target/classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.724 s
+[INFO] Finished at: 2026-06-02T22:05:54+03:00
+[INFO] ------------------------------------------------------------------------
+
+#######################################################################################################################################
+2 step (TCP testing):
+
+Server:
+
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreServerTCP
+[INFO] TCP Server listening on port 3131
+[2026-06-02T22:06:16.899618274][INFO] Client connected: /127.0.0.1:55312
+[2026-06-02T22:06:17.053623094][INFO] Received from /127.0.0.1:55312: Mezzanine:500
+[2026-06-02T22:06:17.058829996][INFO] Sent to /127.0.0.1:55312: OK
+[2026-06-02T22:06:18.063058048][INFO] Received from /127.0.0.1:55312: Dummy:500
+[2026-06-02T22:06:18.063837899][INFO] Sent to /127.0.0.1:55312: OK
+[2026-06-02T22:06:19.066684902][INFO] Received from /127.0.0.1:55312: Treasure:500
+[2026-06-02T22:06:19.067644317][INFO] Sent to /127.0.0.1:55312: OK
+[2026-06-02T22:06:20.072215360][INFO] Client disconnected: /127.0.0.1:55312
+[2026-06-02T22:06:26.323135220][INFO] Client connected: /127.0.0.1:46166
+[2026-06-02T22:06:26.450868836][INFO] Received from /127.0.0.1:46166: Mezzanine:500
+[2026-06-02T22:06:26.451546998][INFO] Sent to /127.0.0.1:46166: OK
+[2026-06-02T22:06:27.455350343][INFO] Received from /127.0.0.1:46166: Dummy:500
+[2026-06-02T22:06:27.456313319][INFO] Sent to /127.0.0.1:46166: OK
+[2026-06-02T22:06:28.458874391][INFO] Received from /127.0.0.1:46166: Treasure:500
+[2026-06-02T22:06:28.459621277][INFO] Sent to /127.0.0.1:46166: OK
+[2026-06-02T22:06:29.462615506][INFO] Client disconnected: /127.0.0.1:46166
+[2026-06-02T22:06:31.316542418][INFO] Client connected: /127.0.0.1:46170
+[2026-06-02T22:06:31.437709385][INFO] Received from /127.0.0.1:46170: Mezzanine:500
+[2026-06-02T22:06:31.438657555][INFO] Sent to /127.0.0.1:46170: OK
+[2026-06-02T22:06:32.422724845][INFO] Client disconnected: /127.0.0.1:46170
+
+
+Clients:
+
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreClientTCP
+[2026-06-02T22:06:16.888469247][INFO] connected to server at 127.0.0.1:3131
+[2026-06-02T22:06:17.059441390][INFO] sent: Mezzanine:500     ; received: OK
+[2026-06-02T22:06:18.064157564][INFO] sent: Dummy:500         ; received: OK
+[2026-06-02T22:06:19.068139773][INFO] sent: Treasure:500      ; received: OK
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreClientTCP
+[2026-06-02T22:06:26.366579291][INFO] connected to server at 127.0.0.1:3131
+[2026-06-02T22:06:26.451973591][INFO] sent: Mezzanine:500     ; received: OK
+[2026-06-02T22:06:27.456666787][INFO] sent: Dummy:500         ; received: OK
+[2026-06-02T22:06:28.459920967][INFO] sent: Treasure:500      ; received: OK
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreClientTCP
+[2026-06-02T22:06:31.355412002][INFO] connected to server at 127.0.0.1:3131
+[2026-06-02T22:06:31.439182065][INFO] sent: Mezzanine:500     ; received: OK
+^Chandziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$
+
+#######################################################################################################################################
+3 step (UDP testing):
+
+Server:
+
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreServerUDP
+[2026-06-02T22:10:50.403642854][INFO] UDP Server listening on port 3232
+[2026-06-02T22:11:03.922240701][INFO] Received datagram from 127.0.0.1:56070
+[2026-06-02T22:11:04.000789683][INFO] Response successfully sent to 127.0.0.1:56070
+[2026-06-02T22:11:05.037562183][INFO] Received datagram from 127.0.0.1:56070
+[2026-06-02T22:11:05.038558963][INFO] Response successfully sent to 127.0.0.1:56070
+[2026-06-02T22:11:06.040603136][INFO] Received datagram from 127.0.0.1:56070
+[2026-06-02T22:11:06.041543274][INFO] Response successfully sent to 127.0.0.1:56070
+[2026-06-02T22:11:08.834878371][INFO] Received datagram from 127.0.0.1:47081
+[2026-06-02T22:11:08.836008897][INFO] Response successfully sent to 127.0.0.1:47081
+[2026-06-02T22:11:09.868906165][INFO] Received datagram from 127.0.0.1:47081
+[2026-06-02T22:11:09.869771782][INFO] Response successfully sent to 127.0.0.1:47081
+[2026-06-02T22:11:10.871721041][INFO] Received datagram from 127.0.0.1:47081
+[2026-06-02T22:11:10.872624931][INFO] Response successfully sent to 127.0.0.1:47081
+[2026-06-02T22:11:14.694326529][INFO] Received datagram from 127.0.0.1:37294
+[2026-06-02T22:11:14.695209397][INFO] Response successfully sent to 127.0.0.1:37294
+[2026-06-02T22:11:15.729106448][INFO] Received datagram from 127.0.0.1:37294
+[2026-06-02T22:11:15.729971576][INFO] Response successfully sent to 127.0.0.1:37294
+
+
+
+Clients:
+
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreClientUDP
+[2026-06-02T22:11:04.030676309][INFO] sent: Blue Lines:1000   ; received: OK
+[2026-06-02T22:11:05.038951123][INFO] sent: Protection:1000   ; received: OK
+[2026-06-02T22:11:06.041948216][INFO] sent: Heligoland:1000   ; received: OK
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreClientUDP
+[2026-06-02T22:11:08.862110037][INFO] sent: Blue Lines:1000   ; received: OK
+[2026-06-02T22:11:09.870163453][INFO] sent: Protection:1000   ; received: OK
+[2026-06-02T22:11:10.872930418][INFO] sent: Heligoland:1000   ; received: OK
+handziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$ java -cp target/classes dev.handziur.network.StoreClientUDP
+[2026-06-02T22:11:14.721655136][INFO] sent: Blue Lines:1000   ; received: OK
+[2026-06-02T22:11:15.730243469][INFO] sent: Protection:1000   ; received: OK
+^Chandziurdmytro@fedora:~/workspace/ukma/java-client-server/practice-project$
