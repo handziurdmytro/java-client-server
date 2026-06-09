@@ -1,7 +1,7 @@
 package dev.handziur.network;
 
 import dev.handziur.crypto.Crypto;
-import dev.handziur.domain.ConcurrentWarehouse;
+import dev.handziur.domain.ProductService;
 import dev.handziur.model.Packet;
 import dev.handziur.protocol.Decoder;
 import dev.handziur.protocol.Encoder;
@@ -25,7 +25,7 @@ public class StoreServerTCP {
         Crypto crypto = new Crypto();
         Encoder encoder = new Encoder(crypto);
         Decoder decoder = new Decoder(crypto);
-        Processor processor = new Processor(new ConcurrentWarehouse());
+        Processor processor = new Processor(new ProductService("jdbc:sqlite:warehouse.db"));
 
         ExecutorService pool = Executors.newFixedThreadPool(8);
 
