@@ -1,17 +1,20 @@
 package dev.handziur.protocol;
 
-import dev.handziur.domain.ConcurrentWarehouse;
+import dev.handziur.domain.Product;
+import dev.handziur.domain.ProductFilterParams;
+import dev.handziur.domain.ProductService;
 import dev.handziur.model.Message;
 import dev.handziur.model.Packet;
 import dev.handziur.model.PacketType;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class Processor {
-    private final ConcurrentWarehouse warehouse;
+    private final ProductService dbService;
 
-    public Processor(ConcurrentWarehouse warehouse) {
-        this.warehouse = warehouse;
+    public Processor(ProductService dbService) {
+        this.dbService = dbService;
     }
 
     public Packet process(Packet requestPacket) {
@@ -25,27 +28,58 @@ public class Processor {
 
             switch (command) {
                 case GET_ITEM_QTY -> {
-                    int qty = warehouse.getItemQty(parts[0]);
-                    responsePayload = "OK:" + qty;
+                    List<Product> res = dbService.search(new ProductFilterParams(parts[0], null, null, null, null, null), 1, 0);
+                    responsePayload = res.isEmpty() ? "OK:0" : "OK:" + res.get(0).quantity();
                 }
                 case ADD_ITEM_QTY -> {
-                    warehouse.addItemQty(parts[0], Integer.parseInt(parts[1]));
+                    String name = parts[0];
+                    int amount = Integer.parseInt(parts[1]);
+                    List<Product> res = dbService.search(new ProductFilterParams(name, null, null, null, null, null), 1, 0);
+                    if (res.isEmpty()) {
+                        dbService.create(new Product(0, name, "Uncategorized", amount, 0.0));
+                    } else {
+                        Product p = res.get(0);
+                        dbService.update(new Product(p.id(), p.name(), p.category(), p.quantity() + amount, p.price()));
+                    }
                     responsePayload = "OK";
                 }
                 case REMOVE_ITEM_QTY -> {
-                    boolean success = warehouse.removeItemQty(parts[0], Integer.parseInt(parts[1]));
-                    responsePayload = success ? "OK" : "ERROR:Not enough quantity";
+                    String name = parts[0];
+                    int amount = Integer.parseInt(parts[1]);
+                    List<Product> res = dbService.search(new ProductFilterParams(name, null, null, null, null, null), 1, 0);
+                    if (res.isEmpty() || res.get(0).quantity() < amount) {
+                        responsePayload = "ERROR:Not enough quantity";
+                    } else {
+                        Product p = res.get(0);
+                        dbService.update(new Product(p.id(), p.name(), p.category(), p.quantity() - amount, p.price()));
+                        responsePayload = "OK";
+                    }
                 }
                 case CREATE_GROUP -> {
-                    boolean created = warehouse.createGroup(parts[0]);
-                    responsePayload = created ? "OK" : "ERROR:Group already exists";
+                    responsePayload = "OK";
                 }
                 case ADD_GROUP_NAME -> {
-                    boolean added = warehouse.addGroupName(parts[0], parts[1]);
-                    responsePayload = added ? "OK" : "ERROR:Group does not exist";
+                    String group = parts[0];
+                    String name = parts[1];
+                    List<Product> res = dbService.search(new ProductFilterParams(name, null, null, null, null, null), 1, 0);
+                    if (res.isEmpty()) {
+                        dbService.create(new Product(0, name, group, 0, 0.0));
+                    } else {
+                        Product p = res.get(0);
+                        dbService.update(new Product(p.id(), p.name(), group, p.quantity(), p.price()));
+                    }
+                    responsePayload = "OK";
                 }
                 case SET_ITEM_PRICE -> {
-                    warehouse.setItemPrice(parts[0], Double.parseDouble(parts[1]));
+                    String name = parts[0];
+                    double price = Double.parseDouble(parts[1]);
+                    List<Product> res = dbService.search(new ProductFilterParams(name, null, null, null, null, null), 1, 0);
+                    if (res.isEmpty()) {
+                        dbService.create(new Product(0, name, "Uncategorized", 0, price));
+                    } else {
+                        Product p = res.get(0);
+                        dbService.update(new Product(p.id(), p.name(), p.category(), p.quantity(), price));
+                    }
                     responsePayload = "OK";
                 }
                 default -> responsePayload = "ERROR:Unknown command";
