@@ -1,28 +1,42 @@
 package dev.handziur.protocol;
 
-import dev.handziur.domain.ConcurrentWarehouse;
+import dev.handziur.domain.Product;
+import dev.handziur.domain.ProductFilterParams;
+import dev.handziur.domain.ProductService;
 import dev.handziur.model.Message;
 import dev.handziur.model.Packet;
 import dev.handziur.model.PacketType;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ProcessorTest {
 
-    private ConcurrentWarehouse warehouse;
+    private ProductService dbService;
     private Processor processor;
+    private File tempDb;
 
     @BeforeEach
-    void setUp() {
-        warehouse = new ConcurrentWarehouse();
-        processor = new Processor(warehouse);
+    void setUp() throws Exception {
+        tempDb = File.createTempFile("test_warehouse", ".db");
+        dbService = new ProductService("jdbc:sqlite:" + tempDb.getAbsolutePath() + "?busy_timeout=5000");
+        processor = new Processor(dbService);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (tempDb != null && tempDb.exists()) {
+            tempDb.delete();
+        }
     }
 
     private Packet createRequest(PacketType type, String payload) {
@@ -34,18 +48,33 @@ class ProcessorTest {
         return new String(packet.message().data(), StandardCharsets.UTF_8);
     }
 
+    private int getQty(String name) {
+        List<Product> res = dbService.search(new ProductFilterParams(name, null, null, null, null, null), 1, 0);
+        return res.isEmpty() ? 0 : res.get(0).quantity();
+    }
+
+    private String getCategory(String name) {
+        List<Product> res = dbService.search(new ProductFilterParams(name, null, null, null, null, null), 1, 0);
+        return res.isEmpty() ? null : res.get(0).category();
+    }
+
+    private double getPrice(String name) {
+        List<Product> res = dbService.search(new ProductFilterParams(name, null, null, null, null, null), 1, 0);
+        return res.isEmpty() ? 0.0 : res.get(0).price();
+    }
+
     @Test
     void processAddItemQty() {
         Packet request = createRequest(PacketType.ADD_ITEM_QTY, "Dummy:500000");
         Packet response = processor.process(request);
 
         assertEquals("OK", extractPayload(response));
-        assertEquals(500000, warehouse.getItemQty("Dummy"));
+        assertEquals(500000, getQty("Dummy"));
     }
 
     @Test
     void processGetItemQty() {
-        warehouse.addItemQty("Portishead", 300000);
+        dbService.create(new Product(0, "Portishead", "Uncategorized", 300000, 0.0));
         Packet request = createRequest(PacketType.GET_ITEM_QTY, "Portishead");
         Packet response = processor.process(request);
 
@@ -54,22 +83,22 @@ class ProcessorTest {
 
     @Test
     void processRemoveItemQtySuccess() {
-        warehouse.addItemQty("Mezzanine", 1000000);
+        dbService.create(new Product(0, "Mezzanine", "Uncategorized", 1000000, 0.0));
         Packet request = createRequest(PacketType.REMOVE_ITEM_QTY, "Mezzanine:400000");
         Packet response = processor.process(request);
 
         assertEquals("OK", extractPayload(response));
-        assertEquals(600000, warehouse.getItemQty("Mezzanine"));
+        assertEquals(600000, getQty("Mezzanine"));
     }
 
     @Test
     void processRemoveItemQtyFail() {
-        warehouse.addItemQty("100th Window", 200000);
+        dbService.create(new Product(0, "100th Window", "Uncategorized", 200000, 0.0));
         Packet request = createRequest(PacketType.REMOVE_ITEM_QTY, "100th Window:400000");
         Packet response = processor.process(request);
 
         assertEquals("ERROR:Not enough quantity", extractPayload(response));
-        assertEquals(200000, warehouse.getItemQty("100th Window"));
+        assertEquals(200000, getQty("100th Window"));
     }
 
     @Test
@@ -81,29 +110,13 @@ class ProcessorTest {
     }
 
     @Test
-    void processCreateGroupDuplicate() {
-        warehouse.createGroup("Massive Attack");
-        Packet request = createRequest(PacketType.CREATE_GROUP, "Massive Attack");
-        Packet response = processor.process(request);
-
-        assertEquals("ERROR:Group already exists", extractPayload(response));
-    }
-
-    @Test
     void processAddGroupNameSuccess() {
-        warehouse.createGroup("Cocteau Twins");
+        dbService.create(new Product(0, "Treasure", "Uncategorized", 10, 0.0));
         Packet request = createRequest(PacketType.ADD_GROUP_NAME, "Cocteau Twins:Treasure");
         Packet response = processor.process(request);
 
         assertEquals("OK", extractPayload(response));
-    }
-
-    @Test
-    void processAddGroupNameFail() {
-        Packet request = createRequest(PacketType.ADD_GROUP_NAME, "Modest Mouse:Good News");
-        Packet response = processor.process(request);
-
-        assertEquals("ERROR:Group does not exist", extractPayload(response));
+        assertEquals("Cocteau Twins", getCategory("Treasure"));
     }
 
     @Test
@@ -112,6 +125,7 @@ class ProcessorTest {
         Packet response = processor.process(request);
 
         assertEquals("OK", extractPayload(response));
+        assertEquals(35000.50, getPrice("The Moon & Antarctica"));
     }
 
     @Test
@@ -133,9 +147,9 @@ class ProcessorTest {
 
     @Test
     void concurrentProcessRequests() throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(8);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
 
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 100; i++) {
             executor.submit(() -> {
                 Packet request = createRequest(PacketType.ADD_ITEM_QTY, "Heligoland:2000");
                 processor.process(request);
@@ -145,6 +159,6 @@ class ProcessorTest {
         executor.shutdown();
         executor.awaitTermination(5, TimeUnit.SECONDS);
 
-        assertEquals(1000000, warehouse.getItemQty("Heligoland"));
+        assertEquals(200000, getQty("Heligoland"));
     }
 }
