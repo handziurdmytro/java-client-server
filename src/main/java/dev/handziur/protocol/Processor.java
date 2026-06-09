@@ -17,7 +17,7 @@ public class Processor {
         this.dbService = dbService;
     }
 
-    public Packet process(Packet requestPacket) {
+    public synchronized Packet process(Packet requestPacket) {
         Message reqMsg = requestPacket.message();
         String responsePayload;
 
