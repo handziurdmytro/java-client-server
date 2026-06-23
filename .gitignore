@@ -39,3 +39,9 @@ build/
 .DS_Store
 
 .idea/
+
+Makefile.local
+
+*.txt
+*.zip
+*.db
